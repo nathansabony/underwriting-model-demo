@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Underwriting Model Demo | Nathan Sabony</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f2a44'/%3E%3Ctext x='32' y='42' font-family='Arial' font-size='28' font-weight='700' text-anchor='middle' fill='%23fff'%3ENS%3C/text%3E%3C/svg%3E">
+<style>
+  :root { --navy:#0f2a44; --accent:#1f7a5a; --red:#b3413b; --ink:#1b2430; --muted:#5b6776; --line:#e3e7ec; --bg:#f5f7fa; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:var(--bg); line-height:1.5; }
+  header { background:var(--navy); color:#fff; padding:18px 20px; }
+  header .wrap { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  header h1 { margin:0; font-size:1.2rem; }
+  header a { color:#9fd3bf; text-decoration:none; font-size:.9rem; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  main { padding:20px; }
+  .note { background:#fff8e6; border:1px solid #f0dca8; color:#6b5210; padding:10px 14px; border-radius:8px; font-size:.88rem; margin-bottom:18px; }
+  .layout { display:grid; grid-template-columns:320px 1fr; gap:16px; align-items:start; }
+  .layout > * { min-width:0; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; overflow:hidden; }
+  .card h2 { font-size:1rem; margin:0 0 12px; color:var(--navy); }
+  fieldset { border:0; padding:0; margin:0 0 14px; }
+  legend { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:700; margin-bottom:6px; }
+  label { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:.88rem; margin:6px 0; }
+  input { width:120px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font-size:.9rem; text-align:right; }
+  .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+  .metric { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .metric .l { font-size:.72rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); font-weight:600; }
+  .metric .v { font-size:1.4rem; font-weight:700; color:var(--navy); }
+  .metric.good .v { color:var(--accent); } .metric.bad .v { color:var(--red); }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.86rem; min-width:560px; }
+  th, td { padding:7px 9px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  tr.total td { font-weight:700; color:var(--navy); border-top:2px solid var(--line); }
+  .flag { font-size:.85rem; margin:4px 0; }
+  .flag.ok::before { content:"\2714  "; color:var(--accent); }
+  .flag.no::before { content:"\2716  "; color:var(--red); }
+  footer { text-align:center; color:var(--muted); font-size:.82rem; padding:20px; }
+  @media (max-width:860px) { .layout { grid-template-columns:1fr; } .metrics { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Multifamily Underwriting Model (Demo)</h1>
+  <a href="https://nathansabony.github.io/">&larr; Back to portfolio</a>
+</div></header>
+
+<main class="wrap">
+  <div class="note"><strong>Demo:</strong> this sample deal is made up. Change any input and the 5-year proforma, returns, exit, and refinance analysis recalculate right away, the same way the internal tool builds a workbook from a deal's documents.</div>
+
+  <div class="layout">
+    <form class="card" id="inputs" onsubmit="return false">
+      <h2>Deal inputs (sample)</h2>
+      <fieldset><legend>Acquisition</legend>
+        <label>Purchase price ($)<input id="price" type="number" value="6500000" step="50000"></label>
+        <label>Closing costs (%)<input id="closing" type="number" value="2" step="0.25"></label>
+        <label>Units<input id="units" type="number" value="40"></label>
+      </fieldset>
+      <fieldset><legend>Operations</legend>
+        <label>Avg monthly rent ($)<input id="rent" type="number" value="1900" step="25"></label>
+        <label>Vacancy (%)<input id="vacancy" type="number" value="5" step="0.5"></label>
+        <label>Other income / unit / mo ($)<input id="other" type="number" value="60"></label>
+        <label>Opex (% of EGI)<input id="opex" type="number" value="42" step="0.5"></label>
+        <label>Rent growth (%/yr)<input id="growth" type="number" value="3" step="0.25"></label>
+        <label>Expense growth (%/yr)<input id="egrowth" type="number" value="3" step="0.25"></label>
+      </fieldset>
+      <fieldset><legend>Financing</legend>
+        <label>Loan-to-value (%)<input id="ltv" type="number" value="65" step="1"></label>
+        <label>Interest rate (%)<input id="rate" type="number" value="6.5" step="0.125"></label>
+        <label>Amortization (yrs)<input id="amort" type="number" value="30"></label>
+      </fieldset>
+      <fieldset><legend>Exit (Year 5)</legend>
+        <label>Exit cap rate (%)<input id="exitcap" type="number" value="6.25" step="0.125"></label>
+        <label>Selling costs (%)<input id="sellcost" type="number" value="3" step="0.25"></label>
+      </fieldset>
+      <fieldset><legend>Benchmarks</legend>
+        <label>Min. DSCR<input id="bdscr" type="number" value="1.25" step="0.05"></label>
+        <label>Target IRR (%)<input id="birr" type="number" value="12" step="0.5"></label>
+      </fieldset>
+    </form>
+
+    <div>
+      <section class="metrics">
+        <div class="metric" id="m-cap"><div class="l">Going-in cap</div><div class="v">-</div></div>
+        <div class="metric" id="m-coc"><div class="l">Yr 1 cash-on-cash</div><div class="v">-</div></div>
+        <div class="metric" id="m-dscr"><div class="l">Yr 1 DSCR</div><div class="v">-</div></div>
+        <div class="metric" id="m-irr"><div class="l">5-yr levered IRR</div><div class="v">-</div></div>
+      </section>
+
+      <section class="card">
+        <h2>5-year proforma</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Line item</th><th>Yr 1</th><th>Yr 2</th><th>Yr 3</th><th>Yr 4</th><th>Yr 5</th></tr></thead>
+          <tbody id="pf"></tbody>
+        </table></div>
+      </section>
+
+      <section class="card">
+        <h2>Exit &amp; refinance scenarios</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Scenario</th><th>Exit cap</th><th>Sale price</th><th>Net proceeds</th><th>Equity multiple</th><th>IRR</th></tr></thead>
+          <tbody id="exit"></tbody>
+        </table></div>
+        <p class="flag" id="refi" style="margin-top:12px"></p>
+      </section>
+
+      <section class="card">
+        <h2>Benchmark check</h2>
+        <div id="checks"></div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer>Sample project by Nathan Sabony &middot; <a href="https://github.com/nathansabony/underwriting-model-demo">View source</a></footer>
+
+<script src="model.js"></script>
+</body>
+</html>
